@@ -3,7 +3,10 @@ package com.yoga.spendanalyser.user.api.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yoga.spendanalyser.user.api.external.SmsDto;
+import com.yoga.spendanalyser.user.api.request.CreateUserRequest;
 import com.yoga.spendanalyser.user.api.request.PreAuthRequest;
+import com.yoga.spendanalyser.user.api.response.CreateUserResponse;
+import com.yoga.spendanalyser.user.api.response.GetUserResponse;
 import com.yoga.spendanalyser.user.api.response.PreAuthResponse;
 import com.yoga.spendanalyser.user.service.UserManagementService;
 import lombok.extern.slf4j.Slf4j;
@@ -12,14 +15,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.jms.Queue;
-import java.util.HashMap;
-import java.util.Map;
 
 
 @RestController
@@ -59,5 +57,38 @@ public class UserManagementController {
                 .setMobileNumber(mobileNumber)
                 .setMessage("Your OTP is " + otp);
         return new ObjectMapper().writeValueAsString(smsDto);
+    }
+
+    @PostMapping(value = "/create")
+    public ResponseEntity<?> createUser(@RequestBody CreateUserRequest createUserRequest) {
+        try {
+            String userId = userManagementService.createUser(createUserRequest);
+            CreateUserResponse createUserResponse = (CreateUserResponse) new CreateUserResponse()
+                                                            .setUserId(userId)
+                                                            .setStatus(HttpStatus.OK.value());
+            return new ResponseEntity<>(createUserResponse, HttpStatus.OK);
+        } catch (Exception e) {
+            log.error("Exception occurred while creating user {}", e.getMessage());
+            CreateUserResponse createUserResponse = (CreateUserResponse) new CreateUserResponse()
+                                                        .setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            return new ResponseEntity<>(createUserResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @GetMapping(value = {"/get", "/firstTimeCheck"})
+    public ResponseEntity<?> getUser(@RequestHeader(value = "mobileNumber", required = true) String mobileNumber) {
+        GetUserResponse userResponse = userManagementService.getUser(Long.parseLong(mobileNumber));
+        if(userResponse != null) {
+            log.info("User Record found with id {}", userResponse.getId());
+            userResponse.setFirstTimeUser(false);
+            userResponse.setStatus(HttpStatus.OK.value());
+            return new ResponseEntity<>(userResponse, HttpStatus.OK);
+        } else {
+            log.info("User Record not found with mobile number {}", mobileNumber);
+            userResponse = (GetUserResponse) new GetUserResponse()
+                                        .setFirstTimeUser(true)
+                                        .setStatus(HttpStatus.NOT_FOUND.value());
+            return new ResponseEntity<>(userResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
