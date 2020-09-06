@@ -8,6 +8,7 @@ import com.yoga.spendanalyser.user.api.request.PreAuthRequest;
 import com.yoga.spendanalyser.user.api.response.CreateUserResponse;
 import com.yoga.spendanalyser.user.api.response.GetUserResponse;
 import com.yoga.spendanalyser.user.api.response.PreAuthResponse;
+import com.yoga.spendanalyser.user.api.response.Status;
 import com.yoga.spendanalyser.user.service.UserManagementService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,5 +91,10 @@ public class UserManagementController {
                                         .setStatus(HttpStatus.NOT_FOUND.value());
             return new ResponseEntity<>(userResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @GetMapping("/healthCheck")
+    public ResponseEntity<?> serviceCheck() {
+        return new ResponseEntity<>(new Status().setStatus(HttpStatus.OK.value()), HttpStatus.OK);
     }
 }
