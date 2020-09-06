@@ -17,7 +17,7 @@ spec:
         - name: user
           image: yogakani10/user
           ports:
-            - containerPort: 9001
+            - containerPort: 9000
           imagePullPolicy: Always
 
 ---
@@ -32,5 +32,5 @@ spec:
     app: user
   ports:
     - port: 80
-      targetPort: 9001
+      targetPort: 9000
   type: LoadBalancer
