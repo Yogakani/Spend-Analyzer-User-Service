@@ -1,4 +1,4 @@
 FROM openjdk:8
 EXPOSE 9000
 ADD /target/user.jar user.jar
-ENTRYPOINT ["java", "-jar", "user.jar"]
+ENTRYPOINT ["java", "-jappar", "user.jar"]
