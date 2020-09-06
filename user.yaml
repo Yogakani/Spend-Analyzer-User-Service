@@ -5,20 +5,20 @@ metadata:
   - name: user
 spec:
   - replicas: 1
-    - selector:
-        - matchLabels:
-            - app: user
-    - template:
-        - metadata:
-            - labels:
-                - app: user
-        - spec:
-            - containers:
-                - name: user
-                  image: yogakani10/user
-                  ports:
-                    - containerPort: 9001
-                  imagePullPolicy: Always
+  - selector:
+    - matchLabels:
+      - app: user
+  - template:
+    - metadata:
+        - labels:
+          - app: user
+    - spec:
+      - containers:
+        - name: user
+          image: yogakani10/user
+          ports:
+            - containerPort: 9001
+          imagePullPolicy: Always
 
 ---
 
