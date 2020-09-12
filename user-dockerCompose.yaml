@@ -1,0 +1,19 @@
+version: "3"
+
+services:
+  user-app:
+    image: user:latest
+    ports:
+      - 8005:9000
+    environment:
+      SPRING_DATASOURCE_URL : mongodb://mongo:27017/spendanalyser
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+    volumes:
+      - /home/yogakani/data/db:/data/db
+

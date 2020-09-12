@@ -1,4 +1,4 @@
 FROM openjdk:8
 EXPOSE 9000
 ADD /target/user.jar user.jar
-ENTRYPOINT ["java", "-jar", "-Dserver.port=9000" "user.jar"]
+ENTRYPOINT ["java", "-jar", "-Dserver.port=9000", "-Dspring.data.mongodb.uri=mongodb://mongo:27017/spendanalyser", "user.jar"]

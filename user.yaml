@@ -18,6 +18,9 @@ spec:
           image: yogakani10/user
           ports:
             - containerPort: 9000
+          env:
+            - name: MONGO_URL
+              value: mongodb://mongo:27017/dev
           imagePullPolicy: Always
 
 ---
