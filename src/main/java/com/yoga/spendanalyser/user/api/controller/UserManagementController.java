@@ -11,14 +11,13 @@ import com.yoga.spendanalyser.user.api.response.PreAuthResponse;
 import com.yoga.spendanalyser.user.api.response.Status;
 import com.yoga.spendanalyser.user.service.UserManagementService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jms.core.JmsTemplate;
 import org.springframework.web.bind.annotation.*;
 
-import javax.jms.Queue;
 
 
 @RestController
@@ -31,16 +30,16 @@ public class UserManagementController {
     private UserManagementService userManagementService;
 
     @Autowired
-    private Queue optQueue;
-
-    @Autowired
-    private JmsTemplate jmsTemplate;
+    private RabbitTemplate rabbitTemplate;
 
     @PostMapping(value = "/preAuth")
     public ResponseEntity<?> preAuthentication(@RequestBody PreAuthRequest preAuthRequest) throws JsonProcessingException {
         if(preAuthRequest.getMobileNumber() != null && preAuthRequest.getMobileNumber() > 0) {
             String otp = userManagementService.generateOtp(String.valueOf(preAuthRequest.getMobileNumber()));
-            jmsTemplate.convertAndSend(optQueue, prepareSMSdetails(preAuthRequest.getMobileNumber(), Long.parseLong(otp)));
+
+            rabbitTemplate.convertAndSend("user.exchange", "user.otp.rk",
+                                        prepareSMSdetails(preAuthRequest.getMobileNumber(), Long.parseLong(otp)));
+
             PreAuthResponse preAuthResponse = (PreAuthResponse) new PreAuthResponse()
                                                         .setOtp(otp)
                                                         .setStatus(HttpStatus.OK.value());
