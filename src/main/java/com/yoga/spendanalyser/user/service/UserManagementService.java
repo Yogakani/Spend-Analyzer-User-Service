@@ -8,4 +8,5 @@ public interface UserManagementService {
     String generateOtp(final String mobileNum);
     String createUser(CreateUserRequest createUserRequest);
     GetUserResponse getUser(final long mobileNumber);
+    boolean persistOtp(String mobileNumber, String otp);
 }
