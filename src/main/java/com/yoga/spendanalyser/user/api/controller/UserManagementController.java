@@ -3,6 +3,7 @@ package com.yoga.spendanalyser.user.api.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yoga.spendanalyser.user.api.external.SmsDto;
+import com.yoga.spendanalyser.user.api.request.AuditRequest;
 import com.yoga.spendanalyser.user.api.request.CreateUserRequest;
 import com.yoga.spendanalyser.user.api.request.PreAuthRequest;
 import com.yoga.spendanalyser.user.api.response.CreateUserResponse;
@@ -11,12 +12,15 @@ import com.yoga.spendanalyser.user.api.response.PreAuthResponse;
 import com.yoga.spendanalyser.user.api.response.Status;
 import com.yoga.spendanalyser.user.service.UserManagementService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 
 @RestController
@@ -28,6 +32,9 @@ public class UserManagementController {
 
     @Autowired
     private UserManagementService userManagementService;
+
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
     
     @PostMapping(value = "/preAuth")
     public ResponseEntity<?> preAuthentication(@RequestBody PreAuthRequest preAuthRequest) throws JsonProcessingException {
@@ -35,6 +42,8 @@ public class UserManagementController {
             String otp = userManagementService.generateOtp(String.valueOf(preAuthRequest.getMobileNumber()));
 
             boolean status = userManagementService.persistOtp(String.valueOf(preAuthRequest.getMobileNumber()), otp);
+
+            persistAuditLogs(prepareOtpAudit(String.valueOf(preAuthRequest.getMobileNumber())));
 
             if(status) {
                 PreAuthResponse preAuthResponse = (PreAuthResponse) new PreAuthResponse()
@@ -55,11 +64,10 @@ public class UserManagementController {
         }
     }
 
-    private String  prepareSMSdetails(long mobileNumber, long otp) throws JsonProcessingException {
-        SmsDto smsDto =  new SmsDto()
+    private AuditRequest prepareOtpAudit(String mobileNumber) throws JsonProcessingException {
+        return new AuditRequest()
                 .setMobileNumber(mobileNumber)
-                .setMessage("Your OTP is " + otp);
-        return new ObjectMapper().writeValueAsString(smsDto);
+                .setEvent("Otp Generated successfully");
     }
 
     @PostMapping(value = "/create")
@@ -95,8 +103,17 @@ public class UserManagementController {
         }
     }
 
-    @GetMapping("/healthCheck")
-    public ResponseEntity<?> serviceCheck() {
-        return new ResponseEntity<>(new Status().setStatus(HttpStatus.OK.value()), HttpStatus.OK);
+    @PutMapping(value = "/audit")
+    public ResponseEntity<?> auditLogin(@RequestBody AuditRequest auditRequest) throws JsonProcessingException {
+        persistAuditLogs(auditRequest);
+        Status status = new Status().setStatus(HttpStatus.OK.value());
+        return new ResponseEntity<>(status, HttpStatus.OK);
     }
+
+    private void persistAuditLogs(AuditRequest auditRequest) throws JsonProcessingException {
+        String time = LocalDate.now().atTime(LocalTime.now()).toString();
+        auditRequest.setTime(time);
+        rabbitTemplate.convertAndSend("user.exchange", "user.audit.rk", new ObjectMapper().writeValueAsString(auditRequest));
+    }
+
 }
